@@ -88,127 +88,136 @@ local function GetGameState()
     State.InGame = matchCheck ~= nil or not State.InLobby
 end
 
-local function AutoFarmLoop()
-    while Config.AutoFarm do
+coroutine.wrap(function()
+    while true do
         task.wait(0.5)
-        pcall(function()
-            GetGameState()
-            if State.InGame then
-                if Config.AutoPlace then
-                    local unitsFolder = Player:FindFirstChild("Units") or workspace:FindFirstChild("Units") or workspace:FindFirstChild("Towers")
-                    if unitsFolder then
-                        local i = 1
-                        for _, unit in ipairs(unitsFolder:GetChildren()) do
-                            local isPlaced = unit:FindFirstChild("Placed") or (unit.PrimaryPart and unit.PrimaryPart.Parent == workspace)
-                            
-                            if not isPlaced and unit:FindFirstChild("Name") then
-                                local placeRemote = FindRemote("Place") or FindRemote("Spawn") or FindRemote("Deploy")
-                                if placeRemote then
-                                    local pos = Config.PlacePositions[i] or Vector3.new(0, 0, 0)
-                                    pcall(function() placeRemote:FireServer(unit, pos) end)
-                                    pcall(function() placeRemote:FireServer(unit.Name, pos) end)
+        if Config.AutoFarm then
+            pcall(function()
+                GetGameState()
+                if State.InGame then
+                    if Config.AutoPlace then
+                        local unitsFolder = Player:FindFirstChild("Units") or workspace:FindFirstChild("Units") or workspace:FindFirstChild("Towers")
+                        if unitsFolder then
+                            local i = 1
+                            for _, unit in ipairs(unitsFolder:GetChildren()) do
+                                local isPlaced = unit:FindFirstChild("Placed") or (unit.PrimaryPart and unit.PrimaryPart.Parent == workspace)
+                                
+                                if not isPlaced and unit:FindFirstChild("Name") then
+                                    local placeRemote = FindRemote("Place") or FindRemote("Spawn") or FindRemote("Deploy")
+                                    if placeRemote then
+                                        local pos = Config.PlacePositions[i] or Vector3.new(0, 0, 0)
+                                        pcall(function() placeRemote:FireServer(unit, pos) end)
+                                        pcall(function() placeRemote:FireServer(unit.Name, pos) end)
+                                    end
                                 end
+                                
+                                if Config.AutoUpgrade and isPlaced then
+                                    local upgradeRemote = FindRemote("Upgrade") or FindRemote("Boost") or FindRemote("LevelUp")
+                                    if upgradeRemote then upgradeRemote:FireServer(unit) end
+                                end
+                                
+                                i = i + 1
+                                task.wait(0.3)
                             end
-                            
-                            if Config.AutoUpgrade and isPlaced then
-                                local upgradeRemote = FindRemote("Upgrade") or FindRemote("Boost") or FindRemote("LevelUp")
-                                if upgradeRemote then upgradeRemote:FireServer(unit) end
-                            end
-                            
-                            i = i + 1
-                            task.wait(0.3)
                         end
                     end
                 end
-            end
-            
-            local resultsGUI = nil
-            for _, gui in ipairs(Player.PlayerGui:GetChildren()) do
-                if gui.Name:match("Result") or gui.Name:match("Victory") or gui.Name:match("Defeat") or gui.Name:match("EndScreen") then
-                    resultsGUI = gui
-                    break
+                
+                local resultsGUI = nil
+                for _, gui in ipairs(Player.PlayerGui:GetChildren()) do
+                    if gui.Name:match("Result") or gui.Name:match("Victory") or gui.Name:match("Defeat") or gui.Name:match("EndScreen") then
+                        resultsGUI = gui
+                        break
+                    end
                 end
-            end
-            
-            if not resultsGUI then
-                local nextLabel = FindButtonByText(Player.PlayerGui, "Next (") or FindButtonByText(Player.PlayerGui, "Return to Lobby")
-                if nextLabel then resultsGUI = nextLabel.Parent end
-            end
-            
-            if resultsGUI or FindButtonByText(Player.PlayerGui, "Next (") then
-                if Config.AutoNext then
-                    local nextBtn = FindButtonByText(Player.PlayerGui, "Next")
-                    if nextBtn then ClickButton(nextBtn) end
-                elseif Config.AutoRetry then
-                    local retryBtn = FindButtonByText(Player.PlayerGui, "Replay") or FindButtonByText(Player.PlayerGui, "Retry") or FindButtonByText(Player.PlayerGui, "PlayAgain")
-                    if retryBtn then ClickButton(retryBtn) end
+                
+                if not resultsGUI then
+                    local nextLabel = FindButtonByText(Player.PlayerGui, "Next (") or FindButtonByText(Player.PlayerGui, "Return to Lobby")
+                    if nextLabel then resultsGUI = nextLabel.Parent end
                 end
-            end
-            
-            if Config.AutoCollect then
-                local collectBtn = FindButtonByText(Player.PlayerGui, "Collect") or FindButtonByText(Player.PlayerGui, "Claim") or FindButtonByText(Player.PlayerGui, "Reward")
-                if collectBtn then ClickButton(collectBtn) end
-            end
-        end)
+                
+                if resultsGUI or FindButtonByText(Player.PlayerGui, "Next (") then
+                    if Config.AutoNext then
+                        local nextBtn = FindButtonByText(Player.PlayerGui, "Next")
+                        if nextBtn then ClickButton(nextBtn) end
+                    elseif Config.AutoRetry then
+                        local retryBtn = FindButtonByText(Player.PlayerGui, "Replay") or FindButtonByText(Player.PlayerGui, "Retry") or FindButtonByText(Player.PlayerGui, "PlayAgain")
+                        if retryBtn then ClickButton(retryBtn) end
+                    end
+                end
+                
+                if Config.AutoCollect then
+                    local collectBtn = FindButtonByText(Player.PlayerGui, "Collect") or FindButtonByText(Player.PlayerGui, "Claim") or FindButtonByText(Player.PlayerGui, "Reward")
+                    if collectBtn then ClickButton(collectBtn) end
+                end
+            end)
+        end
     end
-end
+end)()
 
-local function AutoSummonLoop()
-    while Config.AutoSummon do
-        task.wait(Config.SummonDelay)
-        pcall(function()
-            local summonRemote = FindRemote("Summon") or FindRemote("SummonEvent") or FindRemote("Roll") or FindRemote("Gacha")
-            if summonRemote then
-                -- Try known patterns based on game version
-                pcall(function() summonRemote:FireServer("summon", Config.SummonMode) end)
-                pcall(function() summonRemote:FireServer(Config.SummonMode) end)
-                State.Summoning = true
-            else
-                local summonGUI = Player.PlayerGui:FindFirstChild("Summon") or Player.PlayerGui:FindFirstChild("Gacha") or Player.PlayerGui:FindFirstChild("Banner")
-                if summonGUI then
-                    local summonButton = summonGUI:FindFirstChild("Summon1", true) or summonGUI:FindFirstChild("Summon", true) or summonGUI:FindFirstChild("Roll", true)
-                    if summonButton then ClickButton(summonButton) end
+coroutine.wrap(function()
+    while true do
+        task.wait(Config.SummonDelay or 1)
+        if Config.AutoSummon then
+            pcall(function()
+                local summonRemote = FindRemote("Summon") or FindRemote("SummonEvent") or FindRemote("Roll") or FindRemote("Gacha")
+                if summonRemote then
+                    -- Try known patterns based on game version
+                    pcall(function() summonRemote:FireServer("summon", Config.SummonMode) end)
+                    pcall(function() summonRemote:FireServer(Config.SummonMode) end)
+                    State.Summoning = true
+                else
+                    local summonGUI = Player.PlayerGui:FindFirstChild("Summon") or Player.PlayerGui:FindFirstChild("Gacha") or Player.PlayerGui:FindFirstChild("Banner")
+                    if summonGUI then
+                        local summonButton = summonGUI:FindFirstChild("Summon1", true) or summonGUI:FindFirstChild("Summon", true) or summonGUI:FindFirstChild("Roll", true)
+                        if summonButton then ClickButton(summonButton) end
+                    end
                 end
-            end
-        end)
+            end)
+        else
+            State.Summoning = false
+        end
     end
-    State.Summoning = false
-end
+end)()
 
-local function AutoRerollLoop()
-    while Config.AutoReroll do
+coroutine.wrap(function()
+    while true do
         task.wait(2)
-        pcall(function()
-            local traitGUI = Player.PlayerGui:FindFirstChild("Trait") or Player.PlayerGui:FindFirstChild("Reroll") or Player.PlayerGui:FindFirstChild("Stats")
-            if traitGUI then
-                local rerollButton = traitGUI:FindFirstChild("Reroll", true) or traitGUI:FindFirstChild("RollTrait", true) or traitGUI:FindFirstChild("Change", true)
-                if rerollButton then
-                    local hasTarget = false
-                    for _, label in ipairs(traitGUI:GetDescendants()) do
-                        if label:IsA("TextLabel") and label.Text:find(Config.TargetTrait) then
-                            hasTarget = true
-                            break
+        if Config.AutoReroll then
+            pcall(function()
+                local traitGUI = Player.PlayerGui:FindFirstChild("Trait") or Player.PlayerGui:FindFirstChild("Reroll") or Player.PlayerGui:FindFirstChild("Stats")
+                if traitGUI then
+                    local rerollButton = traitGUI:FindFirstChild("Reroll", true) or traitGUI:FindFirstChild("RollTrait", true) or traitGUI:FindFirstChild("Change", true)
+                    if rerollButton then
+                        local hasTarget = false
+                        for _, label in ipairs(traitGUI:GetDescendants()) do
+                            if label:IsA("TextLabel") and label.Text:find(Config.TargetTrait) then
+                                hasTarget = true
+                                break
+                            end
                         end
+                        if not hasTarget then ClickButton(rerollButton) end
                     end
-                    if not hasTarget then ClickButton(rerollButton) end
                 end
-            end
-        end)
+            end)
+        end
     end
-end
+end)()
 
-local function AntiAFKLoop()
-    while Config.AntiAFK do
+coroutine.wrap(function()
+    while true do
         task.wait(60)
-        pcall(function()
-            local hrp = GetHumanoidRootPart()
-            if hrp then hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 0.5) end
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-            task.wait(0.05)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
-        end)
+        if Config.AntiAFK then
+            pcall(function()
+                local hrp = GetHumanoidRootPart()
+                if hrp then hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 0.5) end
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+            end)
+        end
     end
-end
+end)()
 
 local function ToggleFly()
     Config.Fly = not Config.Fly
@@ -260,15 +269,10 @@ coroutine.wrap(function()
     end
 end)()
 
-getgenv().AVFarmUtils = {
+-- Expose basic single-use functions to global state for the UI buttons
+getgenv().AVSharedFunctions = {
     GetGameState = GetGameState,
-    AutoFarmLoop = AutoFarmLoop,
-    AutoSummonLoop = AutoSummonLoop,
-    AutoRerollLoop = AutoRerollLoop,
-    AntiAFKLoop = AntiAFKLoop,
     ToggleFly = ToggleFly,
     FindRemote = FindRemote,
-    FindAllRemotes = FindAllRemotes,
-    TweenTo = TweenTo,
     GetCharacter = GetCharacter
 }
