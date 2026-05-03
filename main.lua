@@ -47,19 +47,13 @@ local rayfield_url = table.concat(rayfield_parts)
 local Rayfield = loadstring(game:HttpGet(rayfield_url))()
 getgenv().AshlyRayfield = Rayfield
 
-local function createMainWindow()
-    local Window = Rayfield:CreateWindow({
-       Name = "Ashly Hub",
-       LoadingTitle = "Ashly Hub",
-       LoadingSubtitle = "Authentication",
-       ToggleUIKeybind = "K",
-       ConfigurationSaving = {Enabled = false},
-       KeySystem = false
-    })
-    return Window
-end
-
-local Window = createMainWindow()
+local Window = Rayfield:CreateWindow({
+    Name = "Ashly Hub",
+    LoadingTitle = "Auth",
+    LoadingSubtitle = "Login",
+    ConfigurationSaving = {Enabled = false},
+    KeySystem = false
+})
 
 local savedKeyFile = "Ashly_AnimeVanguards_Key.txt"
 local KeyInput = ""
@@ -118,7 +112,8 @@ if KeyInput ~= "" and validateKey(KeyInput) then
     
     local success = loadModules()
     if success then
-        -- The modules loaded successfully and created the new UI.
+        task.wait(0.5)
+        pcall(function() Window:Destroy() end)
     end
 else
     -- Invalid or no key saved, show Auth screen
@@ -155,8 +150,8 @@ else
                 local success = loadModules()
                 
                 if success then
-                    -- Modules loaded perfectly.
-                    -- Leaving the UI transition entirely to av_ui.lua.
+                    task.wait(0.5)
+                    pcall(function() Window:Destroy() end)
                 end
             else
                 Rayfield:Notify({Title = "Denied", Content = "Invalid Key! Please try again.", Duration = 3})
