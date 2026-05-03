@@ -96,7 +96,7 @@ end
 
 local function AutoFarmLoop()
     while Config.AutoFarm do
-        task.wait(0.5)
+        task.wait(math.random(15, 25) / 10) -- 1.5s to 2.5s randomized wait
         pcall(function()
             GetGameState()
             if State.InGame then
@@ -122,7 +122,7 @@ local function AutoFarmLoop()
                             end
                             
                             i = i + 1
-                            task.wait(0.3)
+                            task.wait(math.random(10, 15) / 10) -- Randomize placement spacing
                         end
                     end
                 end
@@ -161,7 +161,7 @@ end
 
 local function AutoSummonLoop()
     while Config.AutoSummon do
-        task.wait(Config.SummonDelay or 1)
+        task.wait((Config.SummonDelay or 1) + (math.random(5, 15) / 10))
         pcall(function()
             local summonRemote = FindRemote("Summon") or FindRemote("SummonEvent") or FindRemote("Roll") or FindRemote("Gacha")
             if summonRemote then
@@ -183,7 +183,7 @@ end
 
 local function AutoRerollLoop()
     while Config.AutoReroll do
-        task.wait(2)
+        task.wait(math.random(25, 40) / 10)
         pcall(function()
             local traitGUI = Player.PlayerGui:FindFirstChild("Trait") or Player.PlayerGui:FindFirstChild("Reroll") or Player.PlayerGui:FindFirstChild("Stats")
             if traitGUI then
@@ -212,7 +212,7 @@ local function AntiAFKLoop()
     end)
     
     while Config.AntiAFK do
-        task.wait(60)
+        task.wait(math.random(55, 65))
         pcall(function()
             local hrp = GetHumanoidRootPart()
             if hrp then 
