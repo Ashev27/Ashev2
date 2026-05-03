@@ -2,10 +2,6 @@ local Config = getgenv().AVConfig
 local State = getgenv().AVState
 local Rayfield = getgenv().AshlyRayfield
 
-local Config = getgenv().AVConfig
-local State = getgenv().AVState
-local Rayfield = getgenv().AshlyRayfield
-
 local function getFarm()
     return getgenv().AVFarmUtils
 end
