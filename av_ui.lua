@@ -1,3 +1,9 @@
+repeat task.wait() until getgenv().MainWindow
+repeat task.wait() until getgenv().AVFarmUtils and getgenv().AVESPUtils
+print("UI LOADED")
+print("Farm:", getgenv().AVFarmUtils)
+print("ESP:", getgenv().AVESPUtils)
+
 local Config = getgenv().AVConfig
 local State = getgenv().AVState
 local Rayfield = getgenv().AshlyRayfield
@@ -20,8 +26,6 @@ local function notify(title, content, duration)
 end
 
 -- Use the existing window created securely by main.lua
-repeat task.wait() until getgenv().MainWindow
-repeat task.wait() until getgenv().AVFarmUtils and getgenv().AVESPUtils
 local Window = getgenv().MainWindow
 
 if not Window then
