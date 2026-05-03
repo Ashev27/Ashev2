@@ -80,31 +80,24 @@ local function validateKey(keyToTest)
 end
 
 local function loadModules()
-    -- Check if files exist first
-    local filesToLoad = {"av_esp.lua", "av_farm.lua", "av_ui.lua"}
-    for _, file in ipairs(filesToLoad) do
-        if not isfile or not isfile(file) then
-            warn("FILE NOT FOUND IN EXECUTOR WORKSPACE: " .. file)
-            Rayfield:Notify({
-                Title = "Missing Files!", 
-                Content = "You must put " .. file .. " in your executor's workspace folder!", 
-                Duration = 10
-            })
-            return false
-        end
-    end
-
-    -- If all files exist, destroy the auth window first
+    -- Destroy the auth window first
     pcall(function() Rayfield:Destroy() end)
     task.wait(0.2)
 
+    -- Fetch files directly from your GitHub!
+    local filesToLoad = {"av_esp.lua", "av_farm.lua", "av_ui.lua"}
+    local baseUrl = "https://raw.githubusercontent.com/Ashev27/Ashev2/main/"
+
     for _, file in ipairs(filesToLoad) do
         local s, res = pcall(function()
-            return loadstring(readfile(file))()
+            local url = baseUrl .. file
+            return loadstring(game:HttpGet(url))()
         end)
         
         if not s then
-            warn("Failed to load module " .. file .. "! " .. tostring(res))
+            warn("Failed to load module " .. file .. " from GitHub! " .. tostring(res))
+            -- Emergency fallback to local just in case
+            pcall(function() loadstring(readfile(file))() end)
         end
     end
     return true
