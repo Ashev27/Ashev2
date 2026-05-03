@@ -5,7 +5,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 
@@ -50,15 +49,22 @@ local function ClickButton(button)
     if not button then return end
     pcall(function()
         if typeof(firesignal) == "function" then
-            firesignal(button.MouseButton1Click)
-            firesignal(button.Activated)
+            for _, conn in pairs(getconnections(button.MouseButton1Click)) do
+                conn:Fire()
+            end
+            for _, conn in pairs(getconnections(button.Activated)) do
+                conn:Fire()
+            end
         end
     end)
     pcall(function()
-        local pos = button.AbsolutePosition + button.AbsoluteSize / 2
-        VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
-        task.wait(0.1)
-        VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
+        if getevents then
+            for _, event in pairs(getevents(button)) do
+                if event.Name == "MouseButton1Click" or event.Name == "Activated" then
+                    event:Fire()
+                end
+            end
+        end
     end)
 end
 
@@ -198,14 +204,31 @@ local function AutoRerollLoop()
 end
 
 local function AntiAFKLoop()
+    -- Hook the Idled event to prevent AFK kick natively
+    pcall(function()
+        for _, conn in pairs(getconnections(Player.Idled)) do
+            conn:Disable()
+        end
+    end)
+    
     while Config.AntiAFK do
         task.wait(60)
         pcall(function()
             local hrp = GetHumanoidRootPart()
-            if hrp then hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 0.5) end
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-            task.wait(0.05)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+            if hrp then 
+                -- Jiggle the character slightly to trick server-side activity monitors
+                local originalCFrame = hrp.CFrame
+                hrp.CFrame = originalCFrame * CFrame.new(0, 0.1, 0)
+                task.wait(0.1)
+                hrp.CFrame = originalCFrame
+            end
+            
+            -- If executor has keypress, simulate spacebar
+            if typeof(keypress) == "function" and typeof(keyrelease) == "function" then
+                keypress(0x20)
+                task.wait(0.05)
+                keyrelease(0x20)
+            end
         end)
     end
 end
