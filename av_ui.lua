@@ -2,8 +2,12 @@ local Config = getgenv().AVConfig
 local State = getgenv().AVState
 local Rayfield = getgenv().AshlyRayfield
 
-local function getShared()
-    return getgenv().AVSharedFunctions
+local function getFarm()
+    return getgenv().AVFarmUtils
+end
+
+local function getESP()
+    return getgenv().AVESPUtils
 end
 
 local Players = game:GetService("Players")
@@ -16,10 +20,11 @@ local function notify(title, content, duration)
 end
 
 -- Use the existing window created securely by main.lua
-local Window = getgenv().AshlyWindow
+repeat task.wait() until getgenv().MainWindow
+local Window = getgenv().MainWindow
 
 if not Window then
-    warn("AshlyWindow not found! UI will not load.")
+    warn("MainWindow not found! UI will not load.")
     return
 end
 
@@ -33,6 +38,10 @@ FarmSection:CreateToggle({
     Flag = "AutoFarm",
     Callback = function(v)
         Config.AutoFarm = v
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AutoFarmLoop)() end
+        end
     end
 })
 
@@ -48,6 +57,10 @@ FarmSection:CreateToggle({
     Flag = "AntiAFK",
     Callback = function(v)
         Config.AntiAFK = v
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AntiAFKLoop)() end
+        end
     end
 })
 
@@ -97,6 +110,10 @@ SummonTab:CreateToggle({
     Flag = "AutoSummon",
     Callback = function(v)
         Config.AutoSummon = v
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AutoSummonLoop)() end
+        end
     end
 })
 
@@ -104,9 +121,9 @@ SummonTab:CreateButton({
     Name = "Summon 1x",
     Callback = function()
         pcall(function()
-            local shared = getShared()
-            if not shared then notify("Error", "Core logic not loaded", 3) return end
-            local remote = shared.FindRemote("Summon") or shared.FindRemote("SummonEvent")
+            local farm = getFarm()
+            if not farm then notify("Error", "Farm module not loaded", 3) return end
+            local remote = farm.FindRemote("Summon") or farm.FindRemote("SummonEvent")
             if remote then remote:FireServer(1); notify("Summon", "1x Summon fired", 2) else notify("Error", "Summon remote not found", 3) end
         end)
     end
@@ -116,9 +133,9 @@ SummonTab:CreateButton({
     Name = "Summon 10x",
     Callback = function()
         pcall(function()
-            local shared = getShared()
-            if not shared then notify("Error", "Core logic not loaded", 3) return end
-            local remote = shared.FindRemote("Summon") or shared.FindRemote("SummonEvent")
+            local farm = getFarm()
+            if not farm then notify("Error", "Farm module not loaded", 3) return end
+            local remote = farm.FindRemote("Summon") or farm.FindRemote("SummonEvent")
             if remote then remote:FireServer(10); notify("Summon", "10x Summon fired", 2) else notify("Error", "Summon remote not found", 3) end
         end)
     end
@@ -142,6 +159,10 @@ TraitTab:CreateToggle({
     Flag = "AutoReroll",
     Callback = function(v)
         Config.AutoReroll = v
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AutoRerollLoop)() end
+        end
     end
 })
 
@@ -155,6 +176,16 @@ ESPTab:CreateToggle({
     Flag = "ESPEnabled",
     Callback = function(v)
         Config.ESP = v
+        local esp = getESP()
+        if not esp then return end
+        
+        for _, obj in pairs(esp.ESPObjects) do
+            if obj.Highlight then obj.Highlight.Enabled = v end
+            if obj.Billboard then obj.Billboard.Enabled = v and Config.ESPName end
+        end
+        if v then
+            esp.ScanForESP()
+        end
     end
 })
 
@@ -168,17 +199,27 @@ ESPTab:CreateToggle({
     Flag = "ESPBoxes",
     Callback = function(v)
         Config.ESPBoxes = v
+        local esp = getESP()
+        if not esp then return end
+        for _, obj in pairs(esp.ESPObjects) do
+            if obj.Highlight then obj.Highlight.Enabled = v end
+        end
     end
 })
 
 ESPTab:CreateButton({
     Name = "Refresh ESP",
     Callback = function()
-        -- Logic handled continuously by av_esp.lua
-        Config.ESP = false
-        task.wait(0.2)
-        Config.ESP = true
-        notify("ESP", "ESP refresh triggered", 2)
+        local esp = getESP()
+        if not esp then notify("Error", "ESP module not loaded", 3) return end
+        
+        for _, obj in pairs(esp.ESPObjects) do
+            if obj.Highlight then pcall(function() obj.Highlight:Destroy() end) end
+            if obj.Billboard then pcall(function() obj.Billboard:Destroy() end) end
+        end
+        table.clear(esp.ESPObjects)
+        esp.ScanForESP()
+        notify("ESP", "ESP refreshed", 2)
     end
 })
 
@@ -195,9 +236,9 @@ PlayerTab:CreateSlider({
     Flag = "WalkSpeed",
     Callback = function(v)
         Config.WalkSpeed = v
-        local shared = getShared()
-        if not shared then return end
-        local char = shared.GetCharacter()
+        local farm = getFarm()
+        if not farm then return end
+        local char = farm.GetCharacter()
         local hum = char:FindFirstChild("Humanoid")
         if hum then hum.WalkSpeed = v end
     end
@@ -212,17 +253,17 @@ PlayerTab:CreateSlider({
     Flag = "JumpPower",
     Callback = function(v)
         Config.JumpPower = v
-        local shared = getShared()
-        if not shared then return end
-        local char = shared.GetCharacter()
+        local farm = getFarm()
+        if not farm then return end
+        local char = farm.GetCharacter()
         local hum = char:FindFirstChild("Humanoid")
         if hum then hum.JumpPower = v end
     end
 })
 
 PlayerTab:CreateToggle({Name = "Fly (Toggle)", CurrentValue = false, Flag = "Fly", Callback = function() 
-    local shared = getShared()
-    if shared then shared.ToggleFly() end 
+    local farm = getFarm()
+    if farm then farm.ToggleFly() end 
 end})
 
 PlayerTab:CreateSection("Utility")
@@ -247,8 +288,8 @@ StatusTab:CreateParagraph({
 StatusTab:CreateButton({
     Name = "Refresh Game State",
     Callback = function()
-        local shared = getShared()
-        if shared then shared.GetGameState() end
+        local farm = getFarm()
+        if farm then farm.GetGameState() end
         local waveText = State.CurrentWave > 0 and "Wave " .. State.CurrentWave or "N/A"
         local inGameText = State.InGame and "Yes" or "No"
         local inLobbyText = State.InLobby and "Yes" or "No"
