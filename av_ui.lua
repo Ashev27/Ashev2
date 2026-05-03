@@ -2,6 +2,16 @@ local Config = getgenv().AVConfig
 local State = getgenv().AVState
 local Rayfield = getgenv().AshlyRayfield
 
+local timeout = 5
+local start = tick()
+
+repeat task.wait() until (getgenv().AVFarmUtils and getgenv().AVESPUtils) or (tick() - start > timeout)
+
+if not getgenv().AVFarmUtils or not getgenv().AVESPUtils then
+    warn("Modules failed to load in time! UI will not build.")
+    return
+end
+
 local FarmUtils = getgenv().AVFarmUtils
 local ESPUtils = getgenv().AVESPUtils
 
