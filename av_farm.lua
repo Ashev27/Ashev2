@@ -242,8 +242,8 @@ end
 coroutine.wrap(function()
     while task.wait() do
         if Config.Fly and State.FlyBV then
-            local hrp = pcall(GetHumanoidRootPart)
-            if not hrp then continue end
+            local success, hrp = pcall(GetHumanoidRootPart)
+            if not success or not hrp then continue end
             
             local moveDir = Vector3.new()
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
