@@ -21,6 +21,7 @@ end
 
 -- Use the existing window created securely by main.lua
 repeat task.wait() until getgenv().MainWindow
+repeat task.wait() until getgenv().AVFarmUtils and getgenv().AVESPUtils
 local Window = getgenv().MainWindow
 
 if not Window then
