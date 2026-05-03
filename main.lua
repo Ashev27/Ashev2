@@ -105,6 +105,7 @@ else
     KeyInput = ""
 
     local AuthTab = Window:CreateTab("Authentication", 4483362458)
+    getgenv().AuthTab = AuthTab
     
     AuthTab:CreateInput({
         Name = "Enter Secret Key",
@@ -123,11 +124,23 @@ else
             local isValid = validateKey(KeyInput)
 
             if isValid then
-                Rayfield:Notify({Title = "Success", Content = "Key valid! Loading features...", Duration = 3})
+                Rayfield:Notify({Title = "Success", Content = "Key valid! Loading features...", Duration = 2})
                 if writefile then
                     writefile(savedKeyFile, KeyInput)
                 end
                 
+                pcall(function()
+                    for _, v in pairs(AuthTab:GetChildren()) do
+                        pcall(function() v:Destroy() end)
+                    end
+                end)
+
+                AuthTab:CreateParagraph({
+                    Title = "Logged In",
+                    Content = "Welcome! Use the tabs above."
+                })
+
+                task.wait(0.3)
                 -- Load the real secret script
                 -- Directly load modules into the existing window
                 loadModules()
