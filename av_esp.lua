@@ -112,21 +112,17 @@ local function ScanForESP()
 end
 
 coroutine.wrap(function()
-    while true do
-        task.wait(1)
+    while task.wait(2) do
         if Config.ESP then
             pcall(function()
                 ScanForESP()
                 UpdateESP()
             end)
-        else
-            -- If ESP is toggled off, make sure we clean up the visuals
-            pcall(function()
-                for _, esp in pairs(ESPObjects) do
-                    if esp.Highlight then esp.Highlight.Enabled = false end
-                    if esp.Billboard then esp.Billboard.Enabled = false end
-                end
-            end)
         end
     end
 end)()
+
+getgenv().AVESPUtils = {
+    ScanForESP = ScanForESP,
+    ESPObjects = ESPObjects
+}
