@@ -110,11 +110,9 @@ end
 if KeyInput ~= "" and validateKey(KeyInput) then
     Rayfield:Notify({Title = "Auto-Login", Content = "Saved key used: '" .. KeyInput .. "'", Duration = 5})
     
-    local success = loadModules()
-    if success then
-        task.wait(0.5)
-        pcall(function() Window:Destroy() end)
-    end
+    pcall(function() Rayfield:Destroy() end)
+    task.wait(0.2)
+    loadModules()
 else
     -- Invalid or no key saved, show Auth screen
     if isfile and isfile(savedKeyFile) and delfile then
@@ -147,12 +145,12 @@ else
                 end
                 
                 -- Load the real secret script
-                local success = loadModules()
+                -- Wipe the Auth UI
+                pcall(function() Rayfield:Destroy() end)
+                task.wait(0.2)
                 
-                if success then
-                    task.wait(0.5)
-                    pcall(function() Window:Destroy() end)
-                end
+                -- Load the real secret script
+                loadModules()
             else
                 Rayfield:Notify({Title = "Denied", Content = "Invalid Key! Please try again.", Duration = 3})
             end
