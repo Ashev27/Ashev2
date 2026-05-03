@@ -80,37 +80,21 @@ local function validateKey(keyToTest)
 end
 
 local function loadModules()
-    -- DO NOT destroy Rayfield here, as av_ui needs the alive instance!
-    task.wait(0.2)
-
-    -- Fetch files directly from your GitHub!
-    local filesToLoad = {"av_esp.lua", "av_farm.lua", "av_ui.lua"}
-    local baseUrl = "https://raw.githubusercontent.com/Ashev27/Ashev2/main/"
-
-    for _, file in ipairs(filesToLoad) do
-        local url = baseUrl .. file
-        print("Loading:", file)
-
-        local s, res = pcall(function()
-            return loadstring(game:HttpGet(url))()
-        end)
+    local function loadRemoteModule(moduleName)
+        local url_parts = {"https://raw.githubusercontent.com", "/Ashev27", "/Ashev2", "/main/", moduleName, ".lua"}
+        local module_url = table.concat(url_parts)
         
-        if s then
-            print("Loaded:", file)
-        else
-            warn("FAILED TO LOAD MODULE FROM GITHUB:", file, res)
-            
-            -- Emergency fallback to local
-            print("Attempting local fallback for:", file)
-            local localS, localRes = pcall(function() return loadstring(readfile(file))() end)
-            if localS then
-                print("Loaded locally:", file)
-            else
-                warn("FAILED LOCAL FALLBACK:", file, localRes)
-            end
+        local s, res = pcall(function()
+            return loadstring(game:HttpGet(module_url))()
+        end)
+        if not s then
+            warn("Failed to load module: " .. moduleName .. " | Error: " .. tostring(res))
         end
     end
-    return true
+
+    loadRemoteModule("av_ui")
+    loadRemoteModule("av_esp")
+    loadRemoteModule("av_farm")
 end
 
 if KeyInput ~= "" and validateKey(KeyInput) then
