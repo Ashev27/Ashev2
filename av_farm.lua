@@ -1,3 +1,4 @@
+print("FARM LOADED")
 local Config = getgenv().AVConfig
 local State = getgenv().AVState
 
