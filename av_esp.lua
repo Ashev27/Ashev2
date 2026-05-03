@@ -111,13 +111,21 @@ local function ScanForESP()
     end
 end
 
+-- Separate heavy scanning from light updating
 coroutine.wrap(function()
-    while task.wait(2) do
+    while true do
+        task.wait(math.random(50, 70) / 10) -- 5 to 7 seconds!
         if Config.ESP then
-            pcall(function()
-                ScanForESP()
-                UpdateESP()
-            end)
+            pcall(function() ScanForESP() end)
+        end
+    end
+end)()
+
+coroutine.wrap(function()
+    while true do
+        task.wait(math.random(10, 15) / 10) -- 1 to 1.5 seconds for visual updates
+        if Config.ESP then
+            pcall(function() UpdateESP() end)
         end
     end
 end)()
