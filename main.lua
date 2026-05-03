@@ -87,9 +87,9 @@ local function loadModules()
         end
     end
 
-    loadRemoteModule("av_ui")
-    loadRemoteModule("av_esp")
     loadRemoteModule("av_farm")
+    loadRemoteModule("av_esp")
+    loadRemoteModule("av_ui")
 end
 
 if KeyInput ~= "" and validateKey(KeyInput) then
