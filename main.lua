@@ -155,8 +155,8 @@ else
                 local success = loadModules()
                 
                 if success then
-                    -- Modules loaded without destroying Rayfield
-                    pcall(function() Window:Destroy() end) -- Only destroy the specific Auth window if possible, not the whole library
+                    -- Modules loaded perfectly.
+                    -- Leaving the UI transition entirely to av_ui.lua.
                 end
             else
                 Rayfield:Notify({Title = "Denied", Content = "Invalid Key! Please try again.", Duration = 3})
