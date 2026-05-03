@@ -137,6 +137,7 @@ else
                 })
 
                 task.wait(0.3)
+                print("MAIN OK")
                 -- Load the real secret script
                 -- Directly load modules into the existing window
                 loadModules()
