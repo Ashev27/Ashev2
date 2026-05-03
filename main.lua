@@ -80,8 +80,7 @@ local function validateKey(keyToTest)
 end
 
 local function loadModules()
-    -- Destroy the auth window first
-    pcall(function() Rayfield:Destroy() end)
+    -- DO NOT destroy Rayfield here, as av_ui needs the alive instance!
     task.wait(0.2)
 
     -- Fetch files directly from your GitHub!
@@ -89,15 +88,26 @@ local function loadModules()
     local baseUrl = "https://raw.githubusercontent.com/Ashev27/Ashev2/main/"
 
     for _, file in ipairs(filesToLoad) do
+        local url = baseUrl .. file
+        print("Loading:", file)
+
         local s, res = pcall(function()
-            local url = baseUrl .. file
             return loadstring(game:HttpGet(url))()
         end)
         
-        if not s then
-            warn("Failed to load module " .. file .. " from GitHub! " .. tostring(res))
-            -- Emergency fallback to local just in case
-            pcall(function() loadstring(readfile(file))() end)
+        if s then
+            print("Loaded:", file)
+        else
+            warn("FAILED TO LOAD MODULE FROM GITHUB:", file, res)
+            
+            -- Emergency fallback to local
+            print("Attempting local fallback for:", file)
+            local localS, localRes = pcall(function() return loadstring(readfile(file))() end)
+            if localS then
+                print("Loaded locally:", file)
+            else
+                warn("FAILED LOCAL FALLBACK:", file, localRes)
+            end
         end
     end
     return true
@@ -141,11 +151,12 @@ else
                     writefile(savedKeyFile, KeyInput)
                 end
                 
-                -- Try to load modules
+                -- Load the real secret script
                 local success = loadModules()
                 
                 if success then
-                    -- The modules loaded successfully (which destroys auth and creates new UI)
+                    -- Modules loaded without destroying Rayfield
+                    pcall(function() Window:Destroy() end) -- Only destroy the specific Auth window if possible, not the whole library
                 end
             else
                 Rayfield:Notify({Title = "Denied", Content = "Invalid Key! Please try again.", Duration = 3})
