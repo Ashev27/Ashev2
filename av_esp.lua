@@ -1,3 +1,4 @@
+print("ESP LOADED")
 local Config = getgenv().AVConfig
 local State = getgenv().AVState
 
