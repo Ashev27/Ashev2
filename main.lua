@@ -80,9 +80,24 @@ local function validateKey(keyToTest)
 end
 
 local function loadModules()
-    -- Load modular files from workspace
+    -- Check if files exist first
     local filesToLoad = {"av_esp.lua", "av_farm.lua", "av_ui.lua"}
-    
+    for _, file in ipairs(filesToLoad) do
+        if not isfile or not isfile(file) then
+            warn("FILE NOT FOUND IN EXECUTOR WORKSPACE: " .. file)
+            Rayfield:Notify({
+                Title = "Missing Files!", 
+                Content = "You must put " .. file .. " in your executor's workspace folder!", 
+                Duration = 10
+            })
+            return false
+        end
+    end
+
+    -- If all files exist, destroy the auth window first
+    pcall(function() Rayfield:Destroy() end)
+    task.wait(0.2)
+
     for _, file in ipairs(filesToLoad) do
         local s, res = pcall(function()
             return loadstring(readfile(file))()
@@ -90,15 +105,18 @@ local function loadModules()
         
         if not s then
             warn("Failed to load module " .. file .. "! " .. tostring(res))
-            Rayfield:Notify({Title = "Error", Content = "Failed to load " .. file, Duration = 5})
         end
     end
+    return true
 end
 
 if KeyInput ~= "" and validateKey(KeyInput) then
     Rayfield:Notify({Title = "Auto-Login", Content = "Saved key used: '" .. KeyInput .. "'", Duration = 5})
-    pcall(function() Rayfield:Destroy() end)
-    loadModules()
+    
+    local success = loadModules()
+    if success then
+        -- The modules loaded successfully and created the new UI.
+    end
 else
     -- Invalid or no key saved, show Auth screen
     if isfile and isfile(savedKeyFile) and delfile then
@@ -130,11 +148,12 @@ else
                     writefile(savedKeyFile, KeyInput)
                 end
                 
-                -- Close the authentication UI entirely
-                pcall(function() Rayfield:Destroy() end)
+                -- Try to load modules
+                local success = loadModules()
                 
-                -- Load the real secret script
-                loadModules()
+                if success then
+                    -- The modules loaded successfully (which destroys auth and creates new UI)
+                end
             else
                 Rayfield:Notify({Title = "Denied", Content = "Invalid Key! Please try again.", Duration = 3})
             end
