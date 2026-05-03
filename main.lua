@@ -47,13 +47,19 @@ local rayfield_url = table.concat(rayfield_parts)
 local Rayfield = loadstring(game:HttpGet(rayfield_url))()
 getgenv().AshlyRayfield = Rayfield
 
-local Window = Rayfield:CreateWindow({
-    Name = "Ashly Hub",
-    LoadingTitle = "Auth",
-    LoadingSubtitle = "Login",
-    ConfigurationSaving = {Enabled = false},
-    KeySystem = false
-})
+local function createMainWindow()
+    local Window = Rayfield:CreateWindow({
+        Name = "Anime Vanguards Hub",
+        LoadingTitle = "Anime Vanguards",
+        LoadingSubtitle = "Authentication",
+        ConfigurationSaving = {Enabled = false},
+        KeySystem = false
+    })
+    getgenv().AshlyWindow = Window
+    return Window
+end
+
+local Window = createMainWindow()
 
 local savedKeyFile = "Ashly_AnimeVanguards_Key.txt"
 local KeyInput = ""
@@ -112,6 +118,7 @@ if KeyInput ~= "" and validateKey(KeyInput) then
     
     pcall(function() Rayfield:Destroy() end)
     task.wait(0.2)
+    Window = createMainWindow()
     loadModules()
 else
     -- Invalid or no key saved, show Auth screen
@@ -145,11 +152,9 @@ else
                 end
                 
                 -- Load the real secret script
-                -- Wipe the Auth UI
                 pcall(function() Rayfield:Destroy() end)
                 task.wait(0.2)
-                
-                -- Load the real secret script
+                Window = createMainWindow()
                 loadModules()
             else
                 Rayfield:Notify({Title = "Denied", Content = "Invalid Key! Please try again.", Duration = 3})
