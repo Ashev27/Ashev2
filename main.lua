@@ -129,11 +129,7 @@ else
                     writefile(savedKeyFile, KeyInput)
                 end
                 
-                pcall(function()
-                    for _, v in pairs(AuthTab:GetChildren()) do
-                        pcall(function() v:Destroy() end)
-                    end
-                end)
+                AuthTab:CreateSection("Status")
 
                 AuthTab:CreateParagraph({
                     Title = "Logged In",
