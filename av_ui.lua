@@ -2,18 +2,17 @@ local Config = getgenv().AVConfig
 local State = getgenv().AVState
 local Rayfield = getgenv().AshlyRayfield
 
-local timeout = 5
-local start = tick()
+local Config = getgenv().AVConfig
+local State = getgenv().AVState
+local Rayfield = getgenv().AshlyRayfield
 
-repeat task.wait() until (getgenv().AVFarmUtils and getgenv().AVESPUtils) or (tick() - start > timeout)
-
-if not getgenv().AVFarmUtils or not getgenv().AVESPUtils then
-    warn("Modules failed to load in time! UI will not build.")
-    return
+local function getFarm()
+    return getgenv().AVFarmUtils
 end
 
-local FarmUtils = getgenv().AVFarmUtils
-local ESPUtils = getgenv().AVESPUtils
+local function getESP()
+    return getgenv().AVESPUtils
+end
 
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
@@ -24,16 +23,13 @@ local function notify(title, content, duration)
     Rayfield:Notify({Title = title, Content = content, Duration = duration or 5})
 end
 
--- Create the main window layout using the existing Rayfield instance
-local Window = Rayfield:CreateWindow({
-    Name = "Anime Vanguards",
-    LoadingTitle = "Anime Vanguards Script",
-    LoadingSubtitle = "by HackerAI",
-    Theme = "Default",
-    ToggleUIKeybind = "K",
-    ConfigurationSaving = {Enabled = false},
-    KeySystem = false
-})
+-- Use the existing window created securely by main.lua
+local Window = getgenv().AshlyWindow
+
+if not Window then
+    warn("AshlyWindow not found! UI will not load.")
+    return
+end
 
 -- Main Tab
 local MainTab = Window:CreateTab("Main", "sword")
@@ -45,7 +41,10 @@ FarmSection:CreateToggle({
     Flag = "AutoFarm",
     Callback = function(v)
         Config.AutoFarm = v
-        if v then coroutine.wrap(FarmUtils.AutoFarmLoop)() end
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AutoFarmLoop)() end
+        end
     end
 })
 
@@ -61,7 +60,10 @@ FarmSection:CreateToggle({
     Flag = "AntiAFK",
     Callback = function(v)
         Config.AntiAFK = v
-        if v then coroutine.wrap(FarmUtils.AntiAFKLoop)() end
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AntiAFKLoop)() end
+        end
     end
 })
 
@@ -111,7 +113,10 @@ SummonTab:CreateToggle({
     Flag = "AutoSummon",
     Callback = function(v)
         Config.AutoSummon = v
-        if v then coroutine.wrap(FarmUtils.AutoSummonLoop)() end
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AutoSummonLoop)() end
+        end
     end
 })
 
@@ -119,7 +124,9 @@ SummonTab:CreateButton({
     Name = "Summon 1x",
     Callback = function()
         pcall(function()
-            local remote = FarmUtils.FindRemote("Summon") or FarmUtils.FindRemote("SummonEvent")
+            local farm = getFarm()
+            if not farm then notify("Error", "Farm module not loaded", 3) return end
+            local remote = farm.FindRemote("Summon") or farm.FindRemote("SummonEvent")
             if remote then remote:FireServer(1); notify("Summon", "1x Summon fired", 2) else notify("Error", "Summon remote not found", 3) end
         end)
     end
@@ -129,7 +136,9 @@ SummonTab:CreateButton({
     Name = "Summon 10x",
     Callback = function()
         pcall(function()
-            local remote = FarmUtils.FindRemote("Summon") or FarmUtils.FindRemote("SummonEvent")
+            local farm = getFarm()
+            if not farm then notify("Error", "Farm module not loaded", 3) return end
+            local remote = farm.FindRemote("Summon") or farm.FindRemote("SummonEvent")
             if remote then remote:FireServer(10); notify("Summon", "10x Summon fired", 2) else notify("Error", "Summon remote not found", 3) end
         end)
     end
@@ -153,7 +162,10 @@ TraitTab:CreateToggle({
     Flag = "AutoReroll",
     Callback = function(v)
         Config.AutoReroll = v
-        if v then coroutine.wrap(FarmUtils.AutoRerollLoop)() end
+        if v then
+            local farm = getFarm()
+            if farm then coroutine.wrap(farm.AutoRerollLoop)() end
+        end
     end
 })
 
@@ -167,9 +179,15 @@ ESPTab:CreateToggle({
     Flag = "ESPEnabled",
     Callback = function(v)
         Config.ESP = v
-        for _, esp in pairs(ESPUtils.ESPObjects) do
-            if esp.Highlight then esp.Highlight.Enabled = v end
-            if esp.Billboard then esp.Billboard.Enabled = v and Config.ESPName end
+        local esp = getESP()
+        if not esp then return end
+        
+        for _, obj in pairs(esp.ESPObjects) do
+            if obj.Highlight then obj.Highlight.Enabled = v end
+            if obj.Billboard then obj.Billboard.Enabled = v and Config.ESPName end
+        end
+        if v then
+            esp.ScanForESP()
         end
     end
 })
@@ -184,8 +202,10 @@ ESPTab:CreateToggle({
     Flag = "ESPBoxes",
     Callback = function(v)
         Config.ESPBoxes = v
-        for _, esp in pairs(ESPUtils.ESPObjects) do
-            if esp.Highlight then esp.Highlight.Enabled = v end
+        local esp = getESP()
+        if not esp then return end
+        for _, obj in pairs(esp.ESPObjects) do
+            if obj.Highlight then obj.Highlight.Enabled = v end
         end
     end
 })
@@ -193,12 +213,15 @@ ESPTab:CreateToggle({
 ESPTab:CreateButton({
     Name = "Refresh ESP",
     Callback = function()
-        for _, esp in pairs(ESPUtils.ESPObjects) do
-            if esp.Highlight then pcall(function() esp.Highlight:Destroy() end) end
-            if esp.Billboard then pcall(function() esp.Billboard:Destroy() end) end
+        local esp = getESP()
+        if not esp then notify("Error", "ESP module not loaded", 3) return end
+        
+        for _, obj in pairs(esp.ESPObjects) do
+            if obj.Highlight then pcall(function() obj.Highlight:Destroy() end) end
+            if obj.Billboard then pcall(function() obj.Billboard:Destroy() end) end
         end
-        table.clear(ESPUtils.ESPObjects)
-        ESPUtils.ScanForESP()
+        table.clear(esp.ESPObjects)
+        esp.ScanForESP()
         notify("ESP", "ESP refreshed", 2)
     end
 })
@@ -216,7 +239,9 @@ PlayerTab:CreateSlider({
     Flag = "WalkSpeed",
     Callback = function(v)
         Config.WalkSpeed = v
-        local char = FarmUtils.GetCharacter()
+        local farm = getFarm()
+        if not farm then return end
+        local char = farm.GetCharacter()
         local hum = char:FindFirstChild("Humanoid")
         if hum then hum.WalkSpeed = v end
     end
@@ -231,13 +256,18 @@ PlayerTab:CreateSlider({
     Flag = "JumpPower",
     Callback = function(v)
         Config.JumpPower = v
-        local char = FarmUtils.GetCharacter()
+        local farm = getFarm()
+        if not farm then return end
+        local char = farm.GetCharacter()
         local hum = char:FindFirstChild("Humanoid")
         if hum then hum.JumpPower = v end
     end
 })
 
-PlayerTab:CreateToggle({Name = "Fly (Toggle)", CurrentValue = false, Flag = "Fly", Callback = function() FarmUtils.ToggleFly() end})
+PlayerTab:CreateToggle({Name = "Fly (Toggle)", CurrentValue = false, Flag = "Fly", Callback = function() 
+    local farm = getFarm()
+    if farm then farm.ToggleFly() end 
+end})
 
 PlayerTab:CreateSection("Utility")
 
@@ -261,7 +291,8 @@ StatusTab:CreateParagraph({
 StatusTab:CreateButton({
     Name = "Refresh Game State",
     Callback = function()
-        FarmUtils.GetGameState()
+        local farm = getFarm()
+        if farm then farm.GetGameState() end
         local waveText = State.CurrentWave > 0 and "Wave " .. State.CurrentWave or "N/A"
         local inGameText = State.InGame and "Yes" or "No"
         local inLobbyText = State.InLobby and "Yes" or "No"
